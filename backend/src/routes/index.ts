@@ -1,0 +1,40 @@
+import { Router } from 'express';
+import { auditLogger } from '../middlewares/auditLogger.middleware';
+import applicationsRoutes from '../modules/applications/applications.routes';
+import auditRoutes from '../modules/audit/audit.routes';
+import authRoutes from '../modules/auth/auth.routes';
+import careersRoutes from '../modules/careers/careers.routes';
+import complaintsRoutes from '../modules/complaints/complaints.routes';
+import contactRoutes from '../modules/contact/contact.routes';
+import dashboardRoutes from '../modules/dashboard/dashboard.routes';
+import faqRoutes from '../modules/faq/faq.routes';
+import galleryRoutes from '../modules/gallery/gallery.routes';
+import newsRoutes from '../modules/news/news.routes';
+import programsRoutes from '../modules/programs/programs.routes';
+import resourcesRoutes from '../modules/resources/resources.routes';
+import schoolsRoutes from '../modules/schools/schools.routes';
+import settingsRoutes from '../modules/settings/settings.routes';
+import statusRoutes from '../modules/status/status.routes';
+import usersRoutes from '../modules/users/users.routes';
+
+const router = Router();
+
+router.use(auditLogger);
+router.use('/auth', authRoutes);
+router.use('/applications', applicationsRoutes);
+router.use('/status', statusRoutes);
+router.use('/complaints', complaintsRoutes);
+router.use('/schools', schoolsRoutes);
+router.use('/programs', programsRoutes);
+router.use('/news', newsRoutes);
+router.use('/gallery', galleryRoutes);
+router.use('/careers', careersRoutes);
+router.use('/resources', resourcesRoutes);
+router.use('/faq', faqRoutes);
+router.use('/contact', contactRoutes);
+router.use('/users', usersRoutes);
+router.use('/dashboard', dashboardRoutes);
+router.use('/settings', settingsRoutes);
+router.use('/audit', auditRoutes);
+
+export default router;
