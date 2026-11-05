@@ -1,0 +1,248 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  staff
+  applicant
+}
+
+model Application {
+  id              String   @id @db.VarChar(24)
+  referenceNumber String   @unique
+  grade           Int
+  applicant       Json
+  applicantEmail  String
+  academic        Json     @default("{}")
+  guardian        Json     @default("{}")
+  documents       Json     @default("[]")
+  status          String   @default("submitted")
+  submittedBy     String?  @db.VarChar(24)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([applicantEmail, grade])
+  @@index([createdAt])
+  @@map("applications")
+}
+
+model AuditLog {
+  id         String   @id @db.VarChar(24)
+  actor      String?  @db.VarChar(24)
+  action     String   @db.VarChar(100)
+  resource   String   @db.VarChar(100)
+  resourceId String?  @db.VarChar(100)
+  ip         String?  @db.VarChar(64)
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Complaint {
+  id              String   @id @db.VarChar(24)
+  referenceNumber String
+  email           String
+  subject         String   @db.VarChar(160)
+  message         String   @db.VarChar(5000)
+  status          String   @default("open")
+  response        String?  @db.VarChar(5000)
+  application     String?  @db.VarChar(24)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([referenceNumber])
+  @@index([createdAt])
+  @@map("complaints")
+}
+
+model Contact {
+  id        String   @id @db.VarChar(24)
+  name      String   @db.VarChar(160)
+  email     String
+  subject   String   @db.VarChar(200)
+  message   String   @db.VarChar(5000)
+  status    String   @default("new")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("contacts")
+}
+
+model Faq {
+  id        String   @id @db.VarChar(24)
+  question  String   @db.VarChar(500)
+  answer    String   @db.VarChar(5000)
+  category  String   @default("General") @db.VarChar(100)
+  order     Int      @default(0)
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("faqs")
+}
+
+model Gallery {
+  id        String   @id @db.VarChar(24)
+  title     String   @db.VarChar(160)
+  imageUrl  String
+  altText   String   @db.VarChar(200)
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("galleries")
+}
+
+model Job {
+  id          String   @id @db.VarChar(24)
+  title       String   @db.VarChar(160)
+  description String   @db.VarChar(30000)
+  location    String   @db.VarChar(160)
+  deadline    DateTime
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("jobs")
+}
+
+model JobApplication {
+  id        String   @id @db.VarChar(24)
+  job       String   @db.VarChar(24)
+  name      String   @db.VarChar(160)
+  email     String
+  phone     String   @db.VarChar(30)
+  resumeUrl String
+  status    String   @default("received")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([job])
+  @@index([createdAt])
+  @@map("job_applications")
+}
+
+model News {
+  id          String   @id @db.VarChar(24)
+  title       String   @db.VarChar(200)
+  slug        String   @unique
+  summary     String   @db.VarChar(500)
+  body        String   @db.VarChar(50000)
+  publishedAt DateTime?
+  published   Boolean  @default(false)
+  author      String?  @db.VarChar(24)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("news")
+}
+
+model Notification {
+  id        String   @id @db.VarChar(24)
+  user      String   @db.VarChar(24)
+  title     String   @db.VarChar(160)
+  message   String   @db.VarChar(2000)
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([user])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+model Program {
+  id          String   @id @db.VarChar(24)
+  title       String   @db.VarChar(160)
+  description String   @db.VarChar(5000)
+  grade       Int[]    @default([9, 10])
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("programs")
+}
+
+model RefreshToken {
+  id        String   @id @db.VarChar(24)
+  userId    String   @db.VarChar(24)
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+model Resource {
+  id          String   @id @db.VarChar(24)
+  title       String   @db.VarChar(200)
+  description String   @db.VarChar(2000)
+  url         String
+  category    String   @db.VarChar(80)
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("resources")
+}
+
+model School {
+  id        String   @id @db.VarChar(24)
+  name      String   @unique @db.VarChar(160)
+  region    String
+  address   String?  @db.VarChar(500)
+  phone     String?  @db.VarChar(30)
+  email     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([region])
+  @@index([createdAt])
+  @@map("schools")
+}
+
+model Setting {
+  id        String   @id @db.VarChar(24)
+  key       String   @unique @db.VarChar(80)
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+model User {
+  id           String   @id @db.VarChar(24)
+  email        String   @unique
+  passwordHash String
+  firstName    String   @db.VarChar(80)
+  lastName     String   @db.VarChar(80)
+  role         UserRole @default(applicant)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([createdAt])
+  @@map("users")
+}

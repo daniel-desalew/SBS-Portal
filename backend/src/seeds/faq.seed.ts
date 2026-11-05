@@ -1,10 +1,12 @@
-import { Faq } from '../models/Faq.model';
+import { prisma } from '../lib/prisma';
+import { createId } from '../utils/id';
 
 export const seedFaqs = async (): Promise<void> => {
-  const count = await Faq.estimatedDocumentCount();
+  const count = await prisma.faq.count();
   if (count > 0) return;
-  await Faq.insertMany([
+  await prisma.faq.createMany({ data: [
     {
+      id: createId(),
       question: 'How do I submit an application?',
       answer: 'Create an account, complete the application form, and submit it while admissions are open.',
       category: 'Admissions',
@@ -12,11 +14,12 @@ export const seedFaqs = async (): Promise<void> => {
       published: true,
     },
     {
+      id: createId(),
       question: 'How can I check my application status?',
       answer: 'Use the status page with your reference number and the email address used to apply.',
       category: 'Admissions',
       order: 2,
       published: true,
     },
-  ]);
+  ] });
 };

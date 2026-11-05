@@ -1,13 +1,16 @@
-import { Application } from '../../models/Application.model';
+import { prisma } from '../../lib/prisma';
 
 export const hasDuplicateApplication = async (
   email: string,
   grade: number,
 ): Promise<boolean> =>
   Boolean(
-    await Application.exists({
-      'applicant.email': email.trim().toLowerCase(),
-      grade,
-      status: { $nin: ['rejected'] },
+    await prisma.application.findFirst({
+      where: {
+        applicantEmail: email.trim().toLowerCase(),
+        grade,
+        status: { not: 'rejected' },
+      },
+      select: { id: true },
     }),
   );

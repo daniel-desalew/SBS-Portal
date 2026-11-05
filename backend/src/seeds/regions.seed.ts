@@ -1,4 +1,5 @@
-import { Setting } from '../models/Setting.model';
+import { prisma } from '../lib/prisma';
+import { createId } from '../utils/id';
 
 export const seedRegions = async (): Promise<void> => {
   const regions = [
@@ -17,9 +18,9 @@ export const seedRegions = async (): Promise<void> => {
     'South West Ethiopia',
     'Tigray',
   ];
-  await Setting.updateOne(
-    { key: 'regions' },
-    { $setOnInsert: { value: regions } },
-    { upsert: true },
-  );
+  await prisma.setting.upsert({
+    where: { key: 'regions' },
+    create: { id: createId(), key: 'regions', value: regions },
+    update: {},
+  });
 };

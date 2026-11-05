@@ -5,6 +5,17 @@ export interface ApiResponseBody<T> {
   meta?: Record<string, unknown>;
 }
 
+const addLegacyIds = (value: unknown): unknown => {
+  if (Array.isArray(value)) return value.map(addLegacyIds);
+  if (!value || typeof value !== 'object' || value instanceof Date) return value;
+  const record = value as Record<string, unknown>;
+  const serialized = Object.fromEntries(
+    Object.entries(record).map(([key, entry]) => [key, addLegacyIds(entry)]),
+  );
+  if (typeof record.id === 'string' && !('_id' in serialized)) serialized._id = record.id;
+  return serialized;
+};
+
 export class ApiResponse<T> {
   constructor(
     public readonly data: T,
@@ -16,7 +27,7 @@ export class ApiResponse<T> {
     return {
       success: true,
       message: this.message,
-      data: this.data,
+      data: addLegacyIds(this.data) as T,
       ...(this.meta ? { meta: this.meta } : {}),
     };
   }

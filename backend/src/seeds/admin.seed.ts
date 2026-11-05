@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
-import { User } from '../models/User.model';
+import { prisma } from '../lib/prisma';
+import { createId } from '../utils/id';
 
 export const seedAdmin = async (): Promise<void> => {
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
@@ -7,7 +8,7 @@ export const seedAdmin = async (): Promise<void> => {
   if (!email || !password || password.length < 12) {
     throw new Error('Set ADMIN_EMAIL and an ADMIN_PASSWORD of at least 12 characters to seed admin');
   }
-  const existing = await User.findOne({ email });
+  const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     if (existing.role !== 'admin') {
       throw new Error('ADMIN_EMAIL already belongs to a non-admin account');
@@ -15,11 +16,14 @@ export const seedAdmin = async (): Promise<void> => {
     return;
   }
   const passwordHash = await bcrypt.hash(password, 12);
-  await User.create({
-    email,
-    passwordHash,
-    firstName: 'Portal',
-    lastName: 'Administrator',
-    role: 'admin',
+  await prisma.user.create({
+    data: {
+      id: createId(),
+      email,
+      passwordHash,
+      firstName: 'Portal',
+      lastName: 'Administrator',
+      role: 'admin',
+    },
   });
 };

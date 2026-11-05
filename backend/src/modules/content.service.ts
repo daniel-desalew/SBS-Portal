@@ -1,66 +1,72 @@
-import type { FilterQuery, Model } from 'mongoose';
+import type { Request } from 'express';
 import type { ZodType } from 'zod';
 import { ApiError } from '../utils/ApiError';
 import { getPagination } from '../utils/pagination';
-import type { Request } from 'express';
 
-export interface ContentOptions {
-  schema: ZodType;
-  searchableFields?: string[];
-  publicFilter?: Record<string, unknown>;
+export interface ContentRepository<TData, TRecord> {
+  list(where: Record<string, unknown>, skip: number, take: number): Promise<TRecord[]>;
+  count(where: Record<string, unknown>): Promise<number>;
+  find(where: Record<string, unknown>): Promise<TRecord | null>;
+  create(data: TData): Promise<TRecord>;
+  update(id: string, data: TData): Promise<TRecord | null>;
+  remove(id: string): Promise<TRecord | null>;
 }
 
-export const createContentService = <DocumentType>(
-  model: Model<DocumentType>,
-  options: ContentOptions,
+export const createContentService = <TData, TRecord extends { id: string }>(
+  repository: ContentRepository<TData, TRecord>,
+  options: {
+    schema: ZodType<TData>;
+    searchableFields?: string[];
+    publicFilter?: () => Record<string, unknown>;
+    slugField?: string;
+  },
 ) => ({
   async list(request: Request, includePrivate: boolean) {
     const { page, limit, skip } = getPagination(request);
-    const filter = (includePrivate ? {} : { ...options.publicFilter }) as FilterQuery<DocumentType>;
+    const clauses: Record<string, unknown>[] = [];
+    if (!includePrivate && options.publicFilter) clauses.push(options.publicFilter());
+
     const query = typeof request.query.q === 'string' ? request.query.q.trim() : '';
     if (query && options.searchableFields?.length) {
-      const safeQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      filter.$or = options.searchableFields.map((field) => ({
-        [field]: { $regex: safeQuery, $options: 'i' },
-      })) as FilterQuery<DocumentType>['$or'];
+      clauses.push({
+        OR: options.searchableFields.map((field) => ({
+          [field]: { contains: query, mode: 'insensitive' },
+        })),
+      });
     }
 
+    const where = clauses.length ? { AND: clauses } : {};
     const [items, total] = await Promise.all([
-      model.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-      model.countDocuments(filter),
+      repository.list(where, skip, limit),
+      repository.count(where),
     ]);
     return { items, page, limit, total, pages: Math.ceil(total / limit) };
   },
 
   async getById(id: string, includePrivate: boolean) {
-    const identity =
-      model.modelName === 'News' && !/^[a-f\d]{24}$/i.test(id) ? { slug: id } : { _id: id };
-    const filter = (includePrivate
-      ? identity
-      : { ...identity, ...options.publicFilter }) as FilterQuery<DocumentType>;
-    const item = await model.findOne(filter).lean();
+    const identity = options.slugField && !/^[a-f\d]{24}$/i.test(id)
+      ? { [options.slugField]: id }
+      : { id };
+    const where = !includePrivate && options.publicFilter
+      ? { AND: [identity, options.publicFilter()] }
+      : identity;
+    const item = await repository.find(where);
     if (!item) throw new ApiError(404, 'Record not found');
     return item;
   },
 
   async create(body: unknown) {
-    const data = options.schema.parse(body);
-    return model.create(data as Partial<DocumentType>);
+    return repository.create(options.schema.parse(body));
   },
 
   async update(id: string, body: unknown) {
-    const data = options.schema.parse(body);
-    const item = await model.findByIdAndUpdate(
-      id,
-      { $set: data },
-      { new: true, runValidators: true },
-    ).lean();
+    const item = await repository.update(id, options.schema.parse(body));
     if (!item) throw new ApiError(404, 'Record not found');
     return item;
   },
 
   async remove(id: string) {
-    const item = await model.findByIdAndDelete(id).lean();
+    const item = await repository.remove(id);
     if (!item) throw new ApiError(404, 'Record not found');
     return item;
   },

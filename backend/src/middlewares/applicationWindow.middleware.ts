@@ -1,10 +1,10 @@
 import type { RequestHandler } from 'express';
-import { Setting } from '../models/Setting.model';
+import { prisma } from '../lib/prisma';
 import { ApiError } from '../utils/ApiError';
 
 export const requireOpenApplicationWindow: RequestHandler = async (_request, _response, next) => {
   try {
-    const setting = await Setting.findOne({ key: 'applicationWindow' }).lean();
+    const setting = await prisma.setting.findUnique({ where: { key: 'applicationWindow' } });
     if (!setting || typeof setting.value !== 'object' || setting.value === null) {
       next(new ApiError(503, 'Application window has not been configured'));
       return;

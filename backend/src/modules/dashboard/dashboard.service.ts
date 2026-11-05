@@ -1,15 +1,12 @@
-import { Application } from '../../models/Application.model';
-import { Complaint } from '../../models/Complaint.model';
-import { Contact } from '../../models/Contact.model';
-import { User } from '../../models/User.model';
+import { prisma } from '../../lib/prisma';
 
 export const getDashboardSummary = async () => {
   const [applications, openApplications, complaints, users, messages] = await Promise.all([
-    Application.countDocuments(),
-    Application.countDocuments({ status: { $in: ['submitted', 'under_review'] } }),
-    Complaint.countDocuments({ status: { $in: ['open', 'in_progress'] } }),
-    User.countDocuments({ isActive: true }),
-    Contact.countDocuments({ status: 'new' }),
+    prisma.application.count(),
+    prisma.application.count({ where: { status: { in: ['submitted', 'under_review'] } } }),
+    prisma.complaint.count({ where: { status: { in: ['open', 'in_progress'] } } }),
+    prisma.user.count({ where: { isActive: true } }),
+    prisma.contact.count({ where: { status: 'new' } }),
   ]);
   return { applications, openApplications, complaints, activeUsers: users, unreadMessages: messages };
 };

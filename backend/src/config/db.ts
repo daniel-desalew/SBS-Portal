@@ -1,12 +1,12 @@
-import mongoose from 'mongoose';
-import { env } from './env';
+import { prisma } from '../lib/prisma';
 import logger from '../utils/logger';
 
 export const connectDatabase = async (): Promise<void> => {
-  await mongoose.connect(env.MONGODB_URI);
-  logger.info('Connected to MongoDB');
+  await prisma.$connect();
+  await prisma.$queryRaw`SELECT 1`;
+  logger.info('Connected to PostgreSQL');
 };
 
 export const disconnectDatabase = async (): Promise<void> => {
-  await mongoose.disconnect();
+  await prisma.$disconnect();
 };

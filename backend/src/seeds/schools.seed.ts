@@ -1,9 +1,10 @@
-import { School } from '../models/School.model';
+import { prisma } from '../lib/prisma';
+import { createId } from '../utils/id';
 
 export const seedSchools = async (): Promise<void> => {
-  const count = await School.estimatedDocumentCount();
+  const count = await prisma.school.count();
   if (count > 0) return;
-  await School.insertMany([
-    { name: 'Example Secondary School', region: 'Addis Ababa', isActive: true },
-  ]);
+  await prisma.school.create({
+    data: { id: createId(), name: 'Example Secondary School', region: 'Addis Ababa', isActive: true },
+  });
 };

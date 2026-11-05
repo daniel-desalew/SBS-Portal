@@ -19,8 +19,9 @@ Monorepo for the SBS Portal web application and API.
 
 ## Getting started
 
-1. Copy `.env.example` to `.env` and replace the example database password and JWT secrets.
-2. Start local MongoDB and Redis:
+1. Copy `.env.example` to `.env` and `backend/.env.example` to `backend/.env`. Add your Neon
+   PostgreSQL URL and replace the example JWT secrets in the backend environment.
+2. Start local MongoDB (migration source only) and Redis:
 
    ```sh
    docker compose up -d
@@ -59,10 +60,27 @@ docker compose down
 `docker compose down` preserves named database volumes. Use `docker compose down -v` only when
 you intentionally want to delete local database data.
 
+## MongoDB to Neon migration
+
+The backend now uses PostgreSQL. Configure the rotated Neon connection string as `DATABASE_URL`
+in `backend/.env` (do not commit it), and configure `MONGO_MIGRATION_URI` for the local MongoDB
+source. Create the destination schema and import the MongoDB records:
+
+```sh
+cd backend
+npm run db:push
+npm run db:migrate-mongo
+```
+
+The migration preserves 24-character Mongo IDs and timestamps, verifies record counts, and refuses
+to run if destination tables already contain data. It does not overwrite or skip existing records.
+Back up the source database first; if a migration is interrupted, reconcile the partial import
+before rerunning. Do not start writing application data to Neon until migration succeeds.
+
 ## Production
 
 Set production-only values in the deployment environment; do not commit secrets. Set
-`API_IMAGE`, `WEB_IMAGE`, database credentials, JWT secrets, and public URLs before running:
+`API_IMAGE`, `WEB_IMAGE`, `DATABASE_URL`, JWT secrets, and public URLs before running:
 
 ```sh
 docker compose -f docker-compose.prod.yml up -d
