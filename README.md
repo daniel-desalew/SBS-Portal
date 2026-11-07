@@ -21,14 +21,11 @@ Monorepo for the SBS Portal web application and API.
 
 1. Copy `.env.example` to `.env` and `backend/.env.example` to `backend/.env`. Add your Neon
    PostgreSQL URL and replace the example JWT secrets in the backend environment.
-2. Start local MongoDB (migration source only) and Redis:
+2. Start Redis:
 
    ```sh
    docker compose up -d
    ```
-
-   MongoDB is exposed on `127.0.0.1:27018` by default to avoid conflicts with an existing
-   local MongoDB service. Set `MONGO_PORT` in `.env` to use a different host port.
 
 3. Install workspace dependencies:
 
@@ -60,31 +57,38 @@ docker compose down
 `docker compose down` preserves named database volumes. Use `docker compose down -v` only when
 you intentionally want to delete local database data.
 
-## MongoDB to Neon migration
+## Production
 
-The backend now uses PostgreSQL. Configure the rotated Neon connection string as `DATABASE_URL`
-in `backend/.env` (do not commit it), and configure `MONGO_MIGRATION_URI` for the local MongoDB
-source. Create the destination schema and import the MongoDB records:
+This production setup uses Docker Compose on a Linux server with Docker installed. Configure
+`backend/.env` with the Neon `DATABASE_URL`, `CLIENT_URL` (the public website origin), and distinct
+random `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` values of at least 32 characters. Keep that
+file private and do not commit it.
+
+Set the public URLs in the root `.env` before building. `NEXT_PUBLIC_API_URL` must be reachable
+from users' browsers and include `/api/v1`; `NEXT_PUBLIC_SITE_URL` must be the public website URL.
+These values are embedded into the frontend at image build time. The root `.env.example` has
+localhost values for local development; replace them with your actual HTTPS URLs for production.
+
+Create/update the Neon schema once from the backend directory, with `DATABASE_URL` configured in
+`backend/.env`:
 
 ```sh
 cd backend
 npm run db:push
-npm run db:migrate-mongo
+cd ..
 ```
 
-The migration preserves 24-character Mongo IDs and timestamps, verifies record counts, and refuses
-to run if destination tables already contain data. It does not overwrite or skip existing records.
-Back up the source database first; if a migration is interrupted, reconcile the partial import
-before rerunning. Do not start writing application data to Neon until migration succeeds.
-
-## Production
-
-Set production-only values in the deployment environment; do not commit secrets. Set
-`API_IMAGE`, `WEB_IMAGE`, `DATABASE_URL`, JWT secrets, and public URLs before running:
+Only run `db:push` against a new/empty database or after reviewing schema changes and backing up
+existing data. Build and start the production stack from the repository root:
 
 ```sh
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml ps
 ```
 
-The production Compose file binds application ports to localhost. Put a TLS-terminating reverse
-proxy in front of the services for public access.
+The API health endpoint is `/health`. The Compose file binds web and API ports to localhost. Put
+a TLS-terminating reverse proxy in front of the services, route the public API hostname to port
+`4000` and the website hostname to port `3000`, and ensure `CLIENT_URL`,
+`NEXT_PUBLIC_API_URL`, and `NEXT_PUBLIC_SITE_URL` match those domains. The optional `API_IMAGE`
+and `WEB_IMAGE` values can override the default locally built image tags when pulling from a
+container registry.

@@ -2,32 +2,63 @@ name: sbs-portal
 
 services:
   api:
-    image: ${API_IMAGE:?Set API_IMAGE to a published backend image}
+    image: ${API_IMAGE:-sbs-portal-api:local}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     restart: unless-stopped
+    env_file:
+      - ./backend/.env
     environment:
       NODE_ENV: production
-      PORT: 4000
-      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL to the Neon PostgreSQL connection}
+      API_PORT: 4000
       REDIS_URL: redis://redis:6379
-      CLIENT_URL: ${CLIENT_URL:?Set CLIENT_URL}
-      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:?Set JWT_ACCESS_SECRET}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:?Set JWT_REFRESH_SECRET}
     ports:
       - "127.0.0.1:${API_PORT:-4000}:4000"
     depends_on:
       redis:
         condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
 
   web:
-    image: ${WEB_IMAGE:?Set WEB_IMAGE to a published frontend image}
+    image: ${WEB_IMAGE:-sbs-portal-web:local}
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Set NEXT_PUBLIC_API_URL to the public API URL}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:?Set NEXT_PUBLIC_SITE_URL to the public website URL}
     restart: unless-stopped
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?Set NEXT_PUBLIC_API_URL}
     ports:
       - "127.0.0.1:${WEB_PORT:-3000}:3000"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/').then((r) => process.exit(r.status < 500 ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
 
   redis:
     image: redis:7-alpine

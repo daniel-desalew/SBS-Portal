@@ -6,14 +6,13 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "prisma generate && tsc -p tsconfig.json",
-    "start": "node dist/server.js",
-    "lint": "eslint src tests scripts",
+    "start": "node dist/src/server.js",
+    "lint": "eslint src tests",
     "test": "vitest run",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "seed": "tsx src/seeds/index.ts",
     "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate-mongo": "tsx scripts/migrate-mongo-to-neon.ts"
+    "db:push": "prisma db push"
   },
   "dependencies": {
     "@prisma/client": "^6.19.3",
@@ -29,7 +28,6 @@
     "helmet": "^8.0.0",
     "ioredis": "^5.4.2",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.9.5",
     "multer": "^2.0.2",
     "nodemailer": "^6.9.16",
     "pdfkit": "^0.16.0",
